@@ -54,6 +54,29 @@ class HeadControlledMouse:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             self.running = False
 
+    def process_eye_landmarks(self, landmarks, frame, frame_w, frame_h, eye_indices, color=(0, 255, 0), move_mouse = False):
+        """
+        Processes and visualizes landmarks for an eye.
+
+        Args:
+            landmarks: The detected facial landmarks.
+            frame: The current frame from the webcam.
+            frame_w: The width of the frame.
+            frame_h: The height of the frame.
+            eye_indices: The indices of landmarks for the eye being processed.
+            color: The color for the visualization of landmarks. Default is green.
+        """
+        for id, landmark in enumerate([landmarks[i] for i in eye_indices]):
+            x = int(landmark.x * frame_w)
+            y = int(landmark.y * frame_h)
+            cv2.circle(frame, (x, y), 3, color)  # Visual feedback
+
+            # Example of moving the mouse based on one landmark, adjust according to your needs
+            if move_mouse and id == 1:  # Adjust this condition as needed
+                screen_x = self.screen_w * landmark.x
+                screen_y = self.screen_h * landmark.y
+                pyautogui.moveTo(screen_x, screen_y)
+
     def process_landmarks(self, landmarks: List[any], frame: np.ndarray) -> None:
         """
         Processes detected landmarks to control mouse movement and clicks.
@@ -63,23 +86,11 @@ class HeadControlledMouse:
             frame (np.ndarray): The current frame for drawing debug information.
         """
         frame_h, frame_w, _ = frame.shape
+        
+        # Define landmark ranges for both eyes, adjust these based on your needs
+        right_eye_indices = range(474, 478)  # Assuming these are for the right eye
+        left_eye_indices = range(468, 472)  # Placeholder, adjust with correct left eye indices
 
-        # Process eye landmarks for mouse movement
-        for id, landmark in enumerate(landmarks[474:478]):
-            x = int(landmark.x * frame_w)
-            y = int(landmark.y * frame_h)
-            cv2.circle(frame, (x, y), 3, (0, 255, 0))
-            if id == 1:
-                screen_x = self.screen_w * landmark.x
-                screen_y = self.screen_h * landmark.y
-                pyautogui.moveTo(screen_x, screen_y)
+        self.process_eye_landmarks(landmarks, frame, frame_w, frame_h, right_eye_indices, color=(0, 255, 0), move_mouse = True)
 
-        # Process eyelid landmarks for click action
-        left = [landmarks[145], landmarks[159]]
-        for landmark in left:
-            x = int(landmark.x * frame_w)
-            y = int(landmark.y * frame_h)
-            cv2.circle(frame, (x, y), 3, (0, 255, 255))
-        if (left[0].y - left[1].y) < 0.004:
-            pyautogui.click()
-            pyautogui.sleep(1)
+        self.process_eye_landmarks(landmarks, frame, frame_w, frame_h, left_eye_indices, color=(0, 255, 0), move_mouse = False)
